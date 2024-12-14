@@ -1,0 +1,25 @@
+name: flutter_frontend
+description: "A new Flutter project."
+publish_to: 'none'  # This is for private packages; remove if you want to publish
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Add your assets here
+  assets:
+    - assets/images/watcha_logo.png
