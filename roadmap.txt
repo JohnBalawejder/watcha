@@ -1,0 +1,144 @@
+Roadmap
+Phase 1: User Accounts and Data Structure
+Why:
+Users need to store their watched movies/shows and rankings individually.
+Having separate accounts lets the app compare preferences between two users and calculate recommendations.
+What to Do:
+Set Up a Database:
+
+Use a database to store:
+User information (e.g., user_id, username).
+Watched movies/shows and rankings.
+Swiping activity and preferences for mood-based recommendations.
+Database Options: Use SQLite for local development, and consider PostgreSQL for production.
+Design the Database Schema: Example:
+
+users table:
+sql
+Copy code
+user_id | username | password_hash
+watched table:
+sql
+Copy code
+watched_id | user_id | title | type (movie/show) | ranking (1-10)
+swipes table:
+sql
+Copy code
+swipe_id | user_id | title | swipe (left/right)
+Implement User Authentication:
+
+Add a Flask endpoint for user registration and login:
+Use Flask-JWT-Extended for token-based authentication.
+Store passwords securely with bcrypt.
+Build Basic API Endpoints:
+
+/register: Create a new user.
+/login: Log in and return a token.
+/watched: Add or retrieve a user's watched movies/shows and rankings.
+/swipes: Log or retrieve swiping activity.
+Phase 2: Movie/Show Data Management
+Why:
+Users must upload their watched shows and rank them to build a profile.
+The app needs to fetch metadata (e.g., genres, release year) from the OMDB API to understand user preferences.
+What to Do:
+Enhance the watched API:
+
+Allow users to upload movies/shows via title. For example:
+POST /watched: Add a movie or show.
+GET /watched: Retrieve the user's watched history.
+Fetch Additional Metadata from OMDB:
+
+Add metadata like Genre and imdbRating to the database when a user uploads a show.
+Example Workflow:
+User uploads "Inception."
+Backend fetches metadata from OMDB and stores:
+json
+Copy code
+{
+    "title": "Inception",
+    "type": "movie",
+    "genre": "Action, Sci-Fi",
+    "ranking": 8
+}
+Frontend for Rankings:
+
+Build a screen where users can:
+See their watched shows.
+Click to edit rankings (1-10 scale).
+Phase 3: Swiping Functionality
+Why:
+Swiping helps capture the users’ current "mood" for real-time recommendations.
+This adds dynamic data to their static watch history.
+What to Do:
+Add a Swiping API:
+
+POST /swipes: Log a swipe (left or right) for a specific show.
+GET /swipes: Retrieve a history of swipes.
+Process Swiping Data:
+
+Store swipes in the swipes table with timestamps.
+Use this data to identify patterns:
+Genres/types they like today.
+Compare swiping patterns between two users.
+Build the Frontend:
+
+Add a swiping UI in Flutter:
+Use a package like swipe_cards for the swiping feature.
+Call the /swipes API after each swipe.
+Phase 4: Recommendation Algorithm
+Why:
+The recommendation algorithm is the heart of your app. It processes user rankings, swiping activity, and metadata to suggest relevant shows.
+What to Do:
+Build the Algorithm:
+
+Use the data in watched and swipes to calculate a "mood profile" for both users:
+Example: If User A swipes right on "The Dark Knight," their mood is favoring "Action" and "Crime."
+Use metadata from OMDB to find similar shows:
+Match genres, directors, or actors.
+Filter out shows they’ve already watched.
+Backend API for Recommendations:
+
+POST /recommendations: Takes both users' swiping activity and watch history as input, then returns recommended shows.
+Example Response:
+json
+Copy code
+{
+    "recommendations": [
+        {
+            "title": "The Matrix",
+            "poster": "https://link_to_poster.jpg",
+            "genre": "Action, Sci-Fi"
+        },
+        {
+            "title": "The Prestige",
+            "poster": "https://link_to_poster.jpg",
+            "genre": "Drama, Mystery"
+        }
+    ]
+}
+Phase 5: Frontend Integration
+Why:
+The frontend should let users interact with the app (add shows, rank them, swipe, and see recommendations).
+What to Do:
+User Account Features:
+
+Add screens for login, signup, and managing accounts.
+Use http package in Flutter to interact with the backend.
+Visualize Rankings and History:
+
+Use a ListView or GridView to display watched shows and rankings.
+Swiping and Recommendations:
+
+Create a swiping screen for users.
+Display recommendations in a new screen.
+Phase 6: Deployment
+Why:
+Deploying your app makes it accessible to real users.
+What to Do:
+Backend Deployment:
+
+Use Render, Heroku, or AWS to host your Python backend.
+Add a domain (e.g., https://watchaapp.com) to replace http://127.0.0.1:5000.
+Frontend Deployment:
+
+Publish your Flutter app to the Google Play Store and Apple App Store.

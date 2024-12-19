@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_frontend/login_screen.dart';
+import 'package:flutter_frontend/register_screen.dart';
+import 'api_service.dart';
 
 // The main entry point of the Flutter app. The `runApp()` function inflates 
 // the given widget (`MyApp`) and attaches it to the screen.
@@ -10,15 +13,18 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // `MaterialApp` is the top-level widget for apps using Material Design. 
-    // It provides theming, routing, and other global app configurations.
     return MaterialApp(
       title: 'Watcha', // App title, useful for debugging and platform integration.
       theme: ThemeData(
         primarySwatch: Colors.lightBlue, // Sets the primary color for the app.
         visualDensity: VisualDensity.adaptivePlatformDensity, // Adjusts visual density for the current platform.
       ),
-      home: HomeScreen(), // The default screen (or route) displayed by the app.
+      initialRoute: '/login',
+      routes: {
+        '/login': (context) => LoginScreen(),
+        '/register': (context) => RegisterScreen(),
+        '/home': (context) => HomeScreen()
+      }, 
     );
   }
 }
@@ -92,19 +98,73 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // The page that displays the user's watch list.
-class WatchListPage extends StatelessWidget {
-  const WatchListPage({Key? key}) : super(key: key); // Constructor with `const` for optimization.
+class WatchListPage extends StatefulWidget {
+  const WatchListPage({Key? key}) : super(key: key);
+
+  @override
+  _WatchListPageState createState() => _WatchListPageState();
+}
+
+class _WatchListPageState extends State<WatchListPage> {
+  List<dynamic> watchedMovies = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchMovies();
+  }
+
+  void fetchMovies() async {
+  try {
+    final token = ApiService.jwtToken; // Use the globally stored token
+
+    if (token == null || token.isEmpty) {
+      throw Exception("User is not logged in. Please login first.");
+    }
+
+    List<dynamic> movies = await ApiService.fetchWatchedMovies(token);
+
+    setState(() {
+      watchedMovies = movies;
+      isLoading = false;
+    });
+  } catch (e) {
+    print("Error fetching movies: $e");
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Watch List')), // App bar with the page title.
-      body: Center(
-        child: Text('Your watched list will go here'), // Placeholder text.
+      appBar: AppBar(
+        title: Text("Watched Movies"),
       ),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: watchedMovies.length,
+              itemBuilder: (context, index) {
+                final movie = watchedMovies[index];
+                return Card(
+                  child: ListTile(
+                    leading: movie["poster"] != "N/A"
+                        ? Image.network(movie["poster"], width: 50, height: 50, fit: BoxFit.cover)
+                        : Icon(Icons.movie),
+                    title: Text(movie["title"]),
+                    subtitle: Text("${movie["genre"]} (${movie["release_year"]})"),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
+
 
 // The page for discovering new movies or shows (e.g., swiping functionality).
 class FindNewPage extends StatelessWidget {
