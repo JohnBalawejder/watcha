@@ -49,5 +49,40 @@ class ApiService {
   }
 }
 
+
+  static Future<void> addMovieToWatchlist(String token, dynamic movie) async {
+      final response = await http.post(
+        Uri.parse("$baseUrl/watched"),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(movie),
+      );
+
+      if (response.statusCode != 201) {
+        throw Exception("Failed to add movie to watchlist");
+      }
+  }
+
+  static Future<List<dynamic>> searchMovies(String token, String query) async {
+    final response = await http.get(
+      Uri.parse("$baseUrl/thumbnails?query=$query"),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['thumbnails'] as List<dynamic>;
+    } else {
+      throw Exception("Failed to fetch search results: ${response.body}");
+    }
+  }
+
+
+
 }
 

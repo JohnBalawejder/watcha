@@ -73,28 +73,37 @@ def login():
 
 
 @api_routes.route('/thumbnails', methods=['GET'])
-def get_thumbnails():
-    query = request.args.get('query')  # Extract 'query' parameter from the request
+def get_movie_thumbnails():
+    query = request.args.get('query', default='', type=str)
     if not query:
         return jsonify({"error": "Query parameter is required"}), 400
 
-    omdb_api_key = "580183dc"  # Replace with your actual API key
+    omdb_api_key = "580183dc"
     omdb_url = f"http://www.omdbapi.com/?apikey={omdb_api_key}&s={query}"
-
-    # Make a request to the OMDB API
     response = requests.get(omdb_url)
+
     if response.status_code != 200:
-        return jsonify({"error": "OMDB API error", "details": response.text}), response.status_code
+        return jsonify({"error": "Failed to fetch data from OMDb"}), 500
 
-    data = response.json()
-    if data.get("Response") == "False":
-        return jsonify({"error": "No results found"}), 404
+    movies = response.json().get('Search', [])
+    results = []
 
-    # Extract movie titles and poster URLs
-    thumbnails = [{"title": movie["Title"], "poster": movie["Poster"]}
-                  for movie in data.get("Search", []) if movie["Poster"] != "N/A"]
+    for movie in movies:
+        # Fetch full details for each movie
+        details_url = f"http://www.omdbapi.com/?apikey={omdb_api_key}&t={movie['Title']}"
+        details_response = requests.get(details_url)
+        details_data = details_response.json()
 
-    return jsonify({"thumbnails": thumbnails})
+        # Append details including genre
+        results.append({
+            "title": details_data.get("Title", "Unknown"),
+            "genre": details_data.get("Genre", "Unknown"),
+            "poster": details_data.get("Poster", "N/A"),
+            "release_year": details_data.get("Year", "N/A"),
+        })
+
+    return jsonify({"thumbnails": results})
+
 
 
 
