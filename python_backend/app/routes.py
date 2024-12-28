@@ -217,3 +217,21 @@ def get_watched_movies():
 
     return jsonify(result), 200
 
+
+
+@api_routes.route('/watched/<int:movie_id>', methods=['DELETE'])
+@jwt_required()
+def delete_watched_movie(movie_id):
+    user_id = int(get_jwt_identity())
+
+    try:
+        movie = WatchedMovie.query.filter_by(id=movie_id, user_id=user_id).first()
+        if not movie:
+            return jsonify({"error": "Movie not found in your watchlist"}), 404
+
+        db.session.delete(movie)
+        db.session.commit()
+        return jsonify({"message": "Movie removed from your watchlist"}), 200
+    except Exception as e:
+        print("Error deleting movie:", str(e))
+        return jsonify({"error": "Failed to delete movie"}), 500

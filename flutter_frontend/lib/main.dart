@@ -98,7 +98,6 @@ class WatchListPage extends StatefulWidget {
   _WatchListPageState createState() => _WatchListPageState();
 }
 
-
 class _WatchListPageState extends State<WatchListPage> {
   List<dynamic> watchedMovies = [];
   bool isLoading = true;
@@ -119,6 +118,9 @@ class _WatchListPageState extends State<WatchListPage> {
 
       List<dynamic> movies = await ApiService.fetchWatchedMovies(token);
 
+      // Sort movies by ranking
+      movies.sort((a, b) => b["ranking"].compareTo(a["ranking"]));
+
       setState(() {
         watchedMovies = movies;
         isLoading = false;
@@ -128,6 +130,32 @@ class _WatchListPageState extends State<WatchListPage> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  void removeMovie(int movieId) async {
+    try {
+      final token = ApiService.jwtToken;
+
+      if (token == null || token.isEmpty) {
+        throw Exception("User is not logged in. Please login first.");
+      }
+
+      await ApiService.removeMovieFromWatchlist(token, movieId);
+
+      // Refresh the list after removing the movie
+      setState(() {
+        watchedMovies.removeWhere((movie) => movie["id"] == movieId);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Movie removed from your watchlist")),
+      );
+    } catch (e) {
+      print("Error removing movie: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to remove movie")),
+      );
     }
   }
 
@@ -164,8 +192,12 @@ class _WatchListPageState extends State<WatchListPage> {
                           style: TextStyle(fontSize: 18),
                         ),
                         subtitle: Text(
-                          "${movie["genre"]} (${movie["release_year"]})",
+                          "Ranking: ${movie["ranking"]}",
                           style: TextStyle(fontSize: 14),
+                        ),
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => removeMovie(movie["id"]),
                         ),
                       ),
                     );
@@ -173,7 +205,6 @@ class _WatchListPageState extends State<WatchListPage> {
                 ),
         ),
       ),
-      // Add the floating action button
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
@@ -187,6 +218,8 @@ class _WatchListPageState extends State<WatchListPage> {
     );
   }
 }
+
+
 
 
 class FindNewPage extends StatelessWidget {
@@ -257,24 +290,93 @@ class FindNewPage extends StatelessWidget {
 class SettingsPage extends StatelessWidget {
   const SettingsPage({Key? key}) : super(key: key);
 
+  void logout(BuildContext context) {
+    // Clear the token
+    ApiService.jwtToken = null;
+
+    // Navigate back to the login screen
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Logged out successfully")),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Determine screen size for responsiveness
+    final isWideScreen = MediaQuery.of(context).size.width > 600;
+
     return Scaffold(
-      appBar: AppBar(title: Text('Settings')),
+      appBar: AppBar(
+        title: Text("Settings"),
+      ),
       body: Center(
         child: Container(
-          width: MediaQuery.of(context).size.width > 800
-              ? 800
-              : MediaQuery.of(context).size.width,
-          child: Text(
-            'Settings and Information will go here',
-            style: TextStyle(fontSize: 18),
+          width: isWideScreen ? 600 : MediaQuery.of(context).size.width * 0.9,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Title
+              Text(
+                "Settings",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              // Horizontal list for options
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Login/Logout button
+                  ElevatedButton(
+                    onPressed: () {
+                      if (ApiService.jwtToken != null) {
+                        logout(context);
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => LoginScreen()),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.lightBlue,
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      textStyle: TextStyle(fontSize: 14),
+                    ),
+                    child: Text(ApiService.jwtToken != null ? "Logout" : "Login"),
+                  ),
+                  const SizedBox(width: 20),
+                  // Placeholder for future options
+                  ElevatedButton(
+                    onPressed: () {
+                      // Placeholder action
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Feature coming soon!")),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey,
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      textStyle: TextStyle(fontSize: 14),
+                    ),
+                    child: Text("Other Option"),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
+
+
 
 class SearchPage extends StatefulWidget {
   @override
@@ -317,13 +419,62 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   void addToWatchlist(dynamic movie) async {
+    final TextEditingController _rankingController = TextEditingController();
+
+    // Show a dialog to get the ranking
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Add Ranking for ${movie['title']}"),
+          content: TextField(
+            controller: _rankingController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: "Ranking (1-10)",
+              hintText: "Enter a ranking between 1 and 10",
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(), // Cancel action
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Confirm action
+              },
+              child: Text("Submit"),
+            ),
+          ],
+        );
+      },
+    );
+
+    // Get the entered ranking
+    final ranking = double.tryParse(_rankingController.text);
+
+    if (ranking == null || ranking < 1 || ranking > 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Invalid ranking. Please enter a value between 1 and 10.")),
+      );
+      return;
+    }
+
     try {
       final token = ApiService.jwtToken;
       if (token == null || token.isEmpty) {
         throw Exception("User is not logged in. Please login first.");
       }
 
-      await ApiService.addMovieToWatchlist(token, movie);
+      // Add the ranking to the movie data
+      final movieData = {
+        "title": movie["title"],
+        "type": movie["type"] ?? "movie", // Default to "movie" if type is missing
+        "ranking": ranking,
+      };
+
+      await ApiService.addMovieToWatchlist(token, movieData);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${movie["title"]} added to your watchlist')),
       );
@@ -389,4 +540,3 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 }
-

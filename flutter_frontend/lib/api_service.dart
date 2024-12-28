@@ -51,19 +51,26 @@ class ApiService {
 
 
   static Future<void> addMovieToWatchlist(String token, dynamic movie) async {
-      final response = await http.post(
-        Uri.parse("$baseUrl/watched"),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(movie),
-      );
+    print("Request data: $movie");
+    print("Sending to: $baseUrl/watched");
 
-      if (response.statusCode != 201) {
-        throw Exception("Failed to add movie to watchlist");
-      }
+    final response = await http.post(
+      Uri.parse("$baseUrl/watched"),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(movie),
+    );
+
+    print("Response status: ${response.statusCode}");
+    print("Response body: ${response.body}");
+
+    if (response.statusCode != 201) {
+      throw Exception("Failed to add movie to watchlist");
+    }
   }
+
 
   static Future<List<dynamic>> searchMovies(String token, String query) async {
     final response = await http.get(
@@ -82,6 +89,21 @@ class ApiService {
     }
   }
 
+
+
+  static Future<void> removeMovieFromWatchlist(String token, int movieId) async {
+  final response = await http.delete(
+    Uri.parse("$baseUrl/watched/$movieId"),
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception("Failed to remove movie from watchlist");
+  }
+}
 
 
 }
