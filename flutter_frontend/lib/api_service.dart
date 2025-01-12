@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = "http://10.0.0.48:5000";
+  static const String baseUrl = "http://192.168.2.39:5000";
+
   static String? jwtToken; // Store the JWT token globally for simplicity
 
   static Future<String> login(String username, String password) async {
